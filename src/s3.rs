@@ -35,9 +35,10 @@ mod tests {
         let s3_config = crate::s3_config_from_env().await;
         let bucket = env::var("S3_BUCKET").unwrap();
         let key = "test-key";
-        let presigned_ttl = Duration::from_secs(500);
+        let preferred_name = "test.txt";
+        let presigned_ttl = Duration::from_secs(5);
 
-        let req = crate::s3::presign_get(s3_config, bucket, key, presigned_ttl)
+        let req = crate::s3::presign_get(s3_config, bucket, key, presigned_ttl, preferred_name)
             .await
             .unwrap();
         let url = req.uri();
