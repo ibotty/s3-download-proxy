@@ -11,8 +11,20 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # expose on localhost
+        - 5432:5432
 
     steps:
     - uses: actions/checkout@v3
@@ -20,7 +32,19 @@ jobs:
     - name: Build
       run: cargo build --verbose
     - name: Run tests
-      run: cargo test --verbose
+      run: |-
+        set -euo pipefail
+        ./.ci/setup-test-database.sh
+        cargo test --verbose
+      env:
+        # for s3-download-proxy
+        DATABASE_URL: postgres://bot-download-proxy:pass@localhost:5432
+
+        # for db setup with psql
+        PGHOST: 127.0.0.1
+        PGPORT: 5432
+        PGUSER: postgres
+        PGPASSWORD: postgres
     - name: Cargo fmt
       run: cargo fmt --all -- --check
     - name: Clippy
