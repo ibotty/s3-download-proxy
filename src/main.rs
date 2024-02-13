@@ -6,6 +6,7 @@ mod state;
 
 use std::env;
 use std::future::IntoFuture;
+use std::iter;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -135,6 +136,8 @@ async fn get_handler(
     )
     .await?;
     let uri = req.uri();
+
+    db::log_access(&state.pg_pool, info.uuid, iter::empty()).await?;
 
     log::debug!("redirecting to uri: {}", uri);
     Ok(Redirect::permanent(uri))
