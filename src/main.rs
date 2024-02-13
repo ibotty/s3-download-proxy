@@ -7,6 +7,7 @@ mod state;
 use std::env;
 use std::future::IntoFuture;
 use std::iter;
+use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -14,14 +15,18 @@ use std::time::Duration;
 use self::apperror::*;
 use self::state::*;
 
-use axum::extract::Path;
-use axum::response::Redirect;
-use foundations::cli::{Arg, ArgAction, Cli};
-use foundations::telemetry::settings::TelemetrySettings;
-use foundations::telemetry::{self, log};
-use foundations::BootstrapResult;
+use anyhow::Context;
+use axum::{extract::Path, response::Redirect};
+use foundations::{
+    cli::{Arg, ArgAction, Cli},
+    telemetry::{self, log, settings::TelemetrySettings},
+    BootstrapResult,
+};
 use tokio::net::TcpListener;
 use tokio::signal::unix;
+use tower_governor::{
+    governor::GovernorConfigBuilder, key_extractor::SmartIpKeyExtractor, GovernorLayer,
+};
 
 #[tokio::main]
 async fn main() -> BootstrapResult<()> {
@@ -57,13 +62,26 @@ async fn main() -> BootstrapResult<()> {
 
     let bind_addr = "0.0.0.0:8080";
 
+    let governor_config = Box::new(
+        GovernorConfigBuilder::default()
+            .key_extractor(SmartIpKeyExtractor)
+            .finish()
+            .context("Cannot construct governor layer config")?,
+    );
+
     let app = axum::Router::new()
+        .layer(GovernorLayer {
+            config: Box::leak(governor_config),
+        })
         .route("/:id/:path", axum::routing::get(get_handler))
         .with_state(server_state);
     let listener = TcpListener::bind(bind_addr).await?;
-    let axum_fut = axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .into_future();
+    let axum_fut = axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .into_future();
 
     log::info!("Server listening on http://{}", bind_addr);
 
