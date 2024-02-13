@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO download_proxy_access_log (uuid_download_proxy_files, access_data) VALUES ($1, $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8bf97bbce4b4f5e64eeb82bb72fb6d084f601efec72f2d61055ea4d6b6c3879d"
+}
