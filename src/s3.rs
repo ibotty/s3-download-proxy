@@ -32,7 +32,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_presign_url() {
-        let s3_config = crate::s3_config_from_env().await;
+        let endpoint_url = env::var("AWS_ENDPOINT_URL").unwrap();
+        let s3_config = crate::s3_config_from_env()
+            .await
+            .to_builder()
+            .endpoint_url(endpoint_url)
+            .build();
+
         let bucket = env::var("S3_BUCKET").unwrap();
         let key = "test-key";
         let preferred_name = "test.txt";
