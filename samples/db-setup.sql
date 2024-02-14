@@ -38,7 +38,7 @@ REVOKE ALL ON FUNCTION download_proxy_file_info FROM PUBLIC;
 
 CREATE TABLE IF NOT EXISTS download_proxy_access_log(
     id_download_proxy_access_log UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    uuid_download_proxy_files UUID NOT NULL REFERENCES download_proxy_files(uuid_download_info),
+    uuid_download_proxy_files UUID NOT NULL REFERENCES download_proxy_files(uuid_download_proxy_files),
     access_time TIMESTAMPTZ NOT NULL DEFAULT now(),
     access_data JSONB NOT NULL DEFAULT '{}'
 );
