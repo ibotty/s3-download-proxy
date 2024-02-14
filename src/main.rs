@@ -139,11 +139,21 @@ async fn get_handler(
 ) -> Result<Redirect, AppError> {
     let info = db::get_download_info(&state.pg_pool, &secret).await?;
 
-    let s3_config = state
-        .s3_config
-        .to_builder()
-        .endpoint_url(&info.s3_endpoint_url)
-        .build();
+    let mut s3_config_builder = state.s3_config.to_builder();
+
+    // add endpoint_url if set
+    if let Some(aws_endpoint_url) = info.aws_endpoint_url {
+        s3_config_builder = s3_config_builder.endpoint_url(&aws_endpoint_url);
+    };
+
+    // add aws_region if set
+    if let Some(aws_region) = info.aws_region {
+        let region = aws_config::Region::new(aws_region);
+        s3_config_builder = s3_config_builder.region(region);
+    };
+
+
+    let s3_config = s3_config_builder.build();
 
     let req = s3::presign_get(
         s3_config,
