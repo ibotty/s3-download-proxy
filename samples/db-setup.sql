@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS download_proxy_files(
-    uuid_download_proxy_files UUID PRIMARY KEY DEFAULT public.uuid_generate_v7(),
+    uuid_download_proxy_files UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     secret CHARACTER(64) NOT NULL UNIQUE DEFAULT REPLACE('' || gen_random_uuid() || gen_random_uuid(), '-', '' ),
     s3_bucket TEXT NOT NULL,
     bucket_key TEXT NOT NULL,
@@ -37,7 +37,7 @@ ROWS 1;
 REVOKE ALL ON FUNCTION download_proxy_file_info FROM PUBLIC;
 
 CREATE TABLE IF NOT EXISTS download_proxy_access_log(
-    id_download_proxy_access_log UUID PRIMARY KEY DEFAULT public.uuid_generate_v7(),
+    id_download_proxy_access_log UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     uuid_download_proxy_files UUID NOT NULL REFERENCES download_proxy_files(uuid_download_info),
     access_time TIMESTAMPTZ NOT NULL DEFAULT now(),
     access_data JSONB NOT NULL DEFAULT '{}'
