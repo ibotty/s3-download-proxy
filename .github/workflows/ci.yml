@@ -62,3 +62,12 @@ jobs:
 
     - name: Clippy
       run: cargo clippy --all-features
+
+  release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: Swatinem/rust-cache@v1
+    - name: Build
+      run: cargo build --release
