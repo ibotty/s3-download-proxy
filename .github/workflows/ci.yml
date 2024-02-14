@@ -28,24 +28,27 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - uses: Swatinem/rust-cache@v1
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: |-
-        set -euo pipefail
-        ./.ci/setup-test-database.sh
-        cargo test --verbose
-      env:
-        # for s3-download-proxy
-        DATABASE_URL: postgres://bot-download-proxy:pass@localhost:5432/postgres
 
-        # for db setup with psql
+    - name: setup database for tests
+      run: ./.ci/setup-test-database.sh
+      env:
         PGHOST: 127.0.0.1
         PGPORT: 5432
         PGUSER: postgres
         PGPASSWORD: postgres
+
+    - uses: Swatinem/rust-cache@v1
+
+    - name: Build
+      run: cargo build --verbose
+
+    - name: Run tests
+      run: cargo test --verbose
+      env:
+        DATABASE_URL: postgres://bot-download-proxy:pass@127.0.0.1:5432/postgres
+
     - name: Cargo fmt
       run: cargo fmt --all -- --check
+
     - name: Clippy
       run: cargo clippy --all-features
