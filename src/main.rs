@@ -17,6 +17,7 @@ use self::state::*;
 
 use anyhow::Context;
 use axum::{extract::Path, response::Redirect};
+use db::DownloadInfo;
 use foundations::{
     cli::{Arg, ArgAction, Cli},
     telemetry::{self, log, settings::TelemetrySettings},
@@ -132,6 +133,25 @@ async fn shutdown_signal() {
     log::info!("signal received, starting graceful shutdown");
 }
 
+async fn s3_config(s3_config: &aws_sdk_s3::Config, info: &DownloadInfo) -> aws_sdk_s3::Config {
+    let mut s3_config_builder = s3_config.to_builder();
+
+    if let Some(aws_endpoint_url) = info.aws_endpoint_url.as_ref() {
+        s3_config_builder = s3_config_builder.endpoint_url(aws_endpoint_url);
+    };
+
+    if let Some(aws_s3_force_path_style) = info.aws_s3_force_path_style {
+        s3_config_builder = s3_config_builder.force_path_style(aws_s3_force_path_style)
+    };
+
+    if let Some(aws_region) = info.aws_region.as_ref() {
+        let region = aws_config::Region::new(aws_region.clone());
+        s3_config_builder = s3_config_builder.region(region);
+    };
+
+    s3_config_builder.build()
+}
+
 #[axum::debug_handler]
 async fn get_handler(
     state: axum::extract::State<Arc<ServerState>>,
@@ -139,36 +159,20 @@ async fn get_handler(
 ) -> Result<Redirect, AppError> {
     let info = db::get_download_info(&state.pg_pool, &secret).await?;
 
-    let mut s3_config_builder = state.s3_config.to_builder();
+    let s3_config = s3_config(&state.s3_config, &info).await;
 
-    // add endpoint_url if set
-    if let Some(aws_endpoint_url) = info.aws_endpoint_url {
-        s3_config_builder = s3_config_builder.endpoint_url(&aws_endpoint_url);
-    };
-
-    // add aws_region if set
-    if let Some(aws_region) = info.aws_region {
-        let region = aws_config::Region::new(aws_region);
-        s3_config_builder = s3_config_builder.region(region);
-    };
-
-
-    let s3_config = s3_config_builder.build();
-
+    log::debug!("presigning GET for {:?}", info);
     let req = s3::presign_get(
         s3_config,
-        info.s3_bucket,
-        info.bucket_key,
+        &info.s3_bucket,
+        &info.bucket_key,
         state.presigned_ttl,
         preferred_name,
     )
     .await?;
-    let uri = req.uri();
 
     db::log_access(&state.pg_pool, info.uuid, iter::empty()).await?;
-
-    log::debug!("redirecting to uri: {}", uri);
-    Ok(Redirect::permanent(uri))
+    Ok(Redirect::permanent(req.uri()))
 }
 
 #[cfg(target_os = "linux")]

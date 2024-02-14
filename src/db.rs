@@ -2,7 +2,7 @@ use crate::AppError;
 
 use sqlx::types::{JsonValue, Uuid};
 
-#[derive(sqlx::FromRow)]
+#[derive(Debug, sqlx::FromRow)]
 pub(crate) struct DownloadInfo {
     #[sqlx(rename = "id")]
     pub uuid: Uuid,
@@ -10,6 +10,7 @@ pub(crate) struct DownloadInfo {
     pub bucket_key: String,
     pub aws_endpoint_url: Option<String>,
     pub aws_region: Option<String>,
+    pub aws_s3_force_path_style: Option<bool>,
 }
 
 pub(crate) async fn get_download_info(
@@ -17,7 +18,7 @@ pub(crate) async fn get_download_info(
     secret: &str,
 ) -> Result<DownloadInfo, AppError> {
     let result = sqlx::query_as(
-        r#"SELECT id, s3_bucket, bucket_key, aws_endpoint_url, aws_region FROM download_proxy_file_info( $1 );"#,
+        r#"SELECT id, s3_bucket, bucket_key, aws_endpoint_url, aws_region, aws_s3_force_path_style FROM download_proxy_file_info( $1 );"#,
     )
     .bind(secret)
     .fetch_optional(pool)
