@@ -6,7 +6,6 @@ mod state;
 
 use std::env;
 use std::future::IntoFuture;
-use std::iter;
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -16,6 +15,7 @@ use self::apperror::*;
 use self::state::*;
 
 use anyhow::Context;
+use axum::extract::ConnectInfo;
 use axum::{extract::Path, response::Redirect};
 use db::DownloadInfo;
 use foundations::{
@@ -155,6 +155,7 @@ async fn s3_config(s3_config: &aws_sdk_s3::Config, info: &DownloadInfo) -> aws_s
 #[axum::debug_handler]
 async fn get_handler(
     state: axum::extract::State<Arc<ServerState>>,
+    ConnectInfo(client_addr): ConnectInfo<SocketAddr>,
     Path((secret, preferred_name)): Path<(String, String)>,
 ) -> Result<Redirect, AppError> {
     let info = db::get_download_info(&state.pg_pool, &secret).await?;
@@ -171,7 +172,9 @@ async fn get_handler(
     )
     .await?;
 
-    db::log_access(&state.pg_pool, info.uuid, iter::empty()).await?;
+    let client_data = vec![("client_ip".to_string(), format!("{}", client_addr.ip()))];
+
+    db::log_access(&state.pg_pool, info.uuid, client_data.into_iter()).await?;
     Ok(Redirect::permanent(req.uri()))
 }
 
