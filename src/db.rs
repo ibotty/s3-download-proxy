@@ -1,6 +1,9 @@
 use crate::AppError;
 
-use sqlx::{types::{JsonValue, Uuid}, FromRow, PgPool};
+use sqlx::{
+    types::{JsonValue, Uuid},
+    FromRow, PgPool,
+};
 
 #[derive(Debug, FromRow)]
 pub(crate) struct DownloadInfo {
