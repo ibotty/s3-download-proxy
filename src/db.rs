@@ -1,8 +1,8 @@
 use crate::AppError;
 
-use sqlx::types::{JsonValue, Uuid};
+use sqlx::{types::{JsonValue, Uuid}, FromRow, PgPool};
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, FromRow)]
 pub(crate) struct DownloadInfo {
     #[sqlx(rename = "id")]
     pub uuid: Uuid,
@@ -14,7 +14,7 @@ pub(crate) struct DownloadInfo {
 }
 
 pub(crate) async fn get_download_info(
-    pool: &sqlx::Pool<sqlx::Postgres>,
+    pool: &PgPool,
     secret: &str,
 ) -> Result<DownloadInfo, AppError> {
     let result = sqlx::query_as(
@@ -27,7 +27,7 @@ pub(crate) async fn get_download_info(
 }
 
 pub(crate) async fn log_access(
-    pool: &sqlx::Pool<sqlx::Postgres>,
+    pool: &PgPool,
     download_id: Uuid,
     access_data: impl IntoIterator<Item = (String, String)>,
 ) -> Result<(), AppError> {

@@ -57,7 +57,7 @@ async fn main() -> BootstrapResult<()> {
     let s3_config = s3_config_from_env().await;
 
     let pg_connect_str = env::var("DATABASE_URL")?;
-    let pg_pool = sqlx::Pool::<sqlx::Postgres>::connect(&pg_connect_str).await?;
+    let pg_pool = sqlx::PgPool::connect(&pg_connect_str).await?;
 
     let server_state = ServerState::new(pg_pool, s3_config, presigned_ttl);
 
