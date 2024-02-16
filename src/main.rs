@@ -44,6 +44,8 @@ async fn main() -> BootstrapResult<()> {
         return Ok(());
     }
 
+    let redirect_homepage = env::var("REDIRECT_HOMEPAGE").expect("Env REDIRECT_HOMEPAGE not set.");
+
     let telemetry_fut = telemetry::init_with_server(&service_info, &cli.settings, vec![])?;
     if let Some(addr) = telemetry_fut.server_addr() {
         log::info!("Telemetry server listening on http://{}", addr);
@@ -59,7 +61,7 @@ async fn main() -> BootstrapResult<()> {
     let pg_connect_str = env::var("DATABASE_URL")?;
     let pg_pool = sqlx::PgPool::connect(&pg_connect_str).await?;
 
-    let server_state = ServerState::new(pg_pool, s3_config, presigned_ttl);
+    let server_state = ServerState::new(pg_pool, s3_config, presigned_ttl, redirect_homepage);
 
     let bind_addr = "0.0.0.0:8080";
 
@@ -74,6 +76,7 @@ async fn main() -> BootstrapResult<()> {
         .layer(GovernorLayer {
             config: Box::leak(governor_config),
         })
+        .route("/", axum::routing::get(redirect_to_homepage))
         .route("/:id/:path", axum::routing::get(get_handler))
         .with_state(server_state);
     let listener = TcpListener::bind(bind_addr).await?;
@@ -150,6 +153,11 @@ async fn s3_config(s3_config: &aws_sdk_s3::Config, info: &DownloadInfo) -> aws_s
     };
 
     s3_config_builder.build()
+}
+
+#[axum::debug_handler]
+async fn redirect_to_homepage(state: axum::extract::State<Arc<ServerState>>) -> Redirect {
+    Redirect::permanent(&state.redirect_homepage)
 }
 
 #[axum::debug_handler]
