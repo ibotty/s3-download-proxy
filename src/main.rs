@@ -175,7 +175,7 @@ async fn get_handler(
     let client_data = vec![("client_ip".to_string(), format!("{}", client_addr.ip()))];
 
     db::log_access(&state.pg_pool, info.uuid, client_data.into_iter()).await?;
-    Ok(Redirect::permanent(req.uri()))
+    Ok(Redirect::temporary(req.uri()))
 }
 
 #[cfg(target_os = "linux")]
