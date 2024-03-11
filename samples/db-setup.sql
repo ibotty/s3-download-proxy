@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS download_proxy_files(
     bucket_key TEXT NOT NULL,
     aws_endpoint_url TEXT,
     aws_region TEXT,
-    aws_s3_force_path_style BOOL
+    aws_s3_force_path_style BOOL,
+    valid_until TIMESTAMPTZ
 );
 
 CREATE OR REPLACE FUNCTION create_download_proxy_link(s3_bucket TEXT, bucket_key TEXT, preferred_name TEXT) RETURNS TEXT
@@ -28,6 +29,7 @@ RETURNS TABLE(
     SELECT uuid_download_proxy_files AS "id", s3_bucket, bucket_key, aws_endpoint_url, aws_region, aws_s3_force_path_style
     FROM download_proxy_files
     WHERE secret = $1
+      AND COALESCE(valid_until > CURRENT_TIMESTAMP, TRUE)
 $$ LANGUAGE SQL
 SET search_path to public
 STRICT
