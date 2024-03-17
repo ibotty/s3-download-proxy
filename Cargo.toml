@@ -1,3 +1,4 @@
+cargo-features = ["codegen-backend"]
 [package]
 name = "s3-download-proxy"
 version = "0.1.0"
@@ -19,4 +20,17 @@ tower_governor = "0.3.2"
 reqwest = { version = "0.11.24", default-features = false, features = ["rustls", "rustls-tls-webpki-roots"] }
 
 [profile.release]
-strip = true
+strip = "none"
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.debug]
+inherits = "dev"
+opt-level = 0
+debug = 0
+strip = "none"
+lto = false
+codegen-units = 256
+incremental = true
+codegen-backend = "cranelift"
