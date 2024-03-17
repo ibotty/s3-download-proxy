@@ -77,6 +77,7 @@ async fn main() -> BootstrapResult<()> {
             config: Box::leak(governor_config),
         })
         .route("/", axum::routing::get(redirect_to_homepage))
+        .route("/robots.txt", axum::routing::get(robots_txt))
         .route("/:id/:path", axum::routing::get(get_handler))
         .with_state(server_state);
     let listener = TcpListener::bind(bind_addr).await?;
@@ -158,6 +159,10 @@ async fn s3_config(s3_config: &aws_sdk_s3::Config, info: &DownloadInfo) -> aws_s
 #[axum::debug_handler]
 async fn redirect_to_homepage(state: axum::extract::State<Arc<ServerState>>) -> Redirect {
     Redirect::permanent(&state.redirect_homepage)
+}
+
+async fn robots_txt() -> &'static str {
+    " User-agent: * \n Disallow: / \n"
 }
 
 #[axum::debug_handler]
