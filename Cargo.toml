@@ -1,4 +1,6 @@
-cargo-features = ["codegen-backend"]
+[unstable]
+codegen-backend = true
+
 [package]
 name = "s3-download-proxy"
 version = "0.1.0"
