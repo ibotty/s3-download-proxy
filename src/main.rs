@@ -174,10 +174,14 @@ async fn get_handler(
     let info = db::get_download_info(&state.pg_pool, &secret).await?;
 
     let s3_config = s3_config(&state.s3_config, &info).await;
+    let s3_client = aws_sdk_s3::Client::from_conf(s3_config);
+
+    log::debug!("checking for file {:?}", info);
+    let _ = s3::stat_file(&s3_client, &info.bucket_key, &info.bucket_key).await?;
 
     log::debug!("presigning GET for {:?}", info);
     let req = s3::presign_get(
-        s3_config,
+        &s3_client,
         &info.s3_bucket,
         &info.bucket_key,
         state.presigned_ttl,
