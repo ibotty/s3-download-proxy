@@ -65,7 +65,7 @@ async fn main() -> BootstrapResult<()> {
 
     let bind_addr = "0.0.0.0:8080";
 
-    let governor_config = Box::new(
+    let governor_config = Arc::new(
         GovernorConfigBuilder::default()
             .key_extractor(SmartIpKeyExtractor)
             .finish()
@@ -74,7 +74,7 @@ async fn main() -> BootstrapResult<()> {
 
     let app = axum::Router::new()
         .layer(GovernorLayer {
-            config: Box::leak(governor_config),
+            config: governor_config,
         })
         .route("/", axum::routing::get(redirect_to_homepage))
         .route("/robots.txt", axum::routing::get(robots_txt))
