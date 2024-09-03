@@ -16,6 +16,7 @@ use self::state::*;
 
 use anyhow::Context;
 use axum::extract::ConnectInfo;
+use axum::routing::get_service;
 use axum::{extract::Path, response::Redirect};
 use db::DownloadInfo;
 use foundations::{
@@ -28,6 +29,7 @@ use tokio::signal::unix;
 use tower_governor::{
     governor::GovernorConfigBuilder, key_extractor::SmartIpKeyExtractor, GovernorLayer,
 };
+use tower_http::services::ServeDir;
 
 #[tokio::main]
 async fn main() -> BootstrapResult<()> {
@@ -79,7 +81,8 @@ async fn main() -> BootstrapResult<()> {
         .route("/", axum::routing::get(redirect_to_homepage))
         .route("/robots.txt", axum::routing::get(robots_txt))
         .route("/:id/:path", axum::routing::get(get_handler))
-        .with_state(server_state);
+        .with_state(server_state)
+        .fallback(get_service(serve_statics()));
     let listener = TcpListener::bind(bind_addr).await?;
     let axum_fut = axum::serve(
         listener,
@@ -207,4 +210,9 @@ fn sandbox_syscalls() -> BootstrapResult<()> {
         ]
     }
     enable_syscall_sandboxing(ViolationAction::KillProcess, &ALLOWED)
+}
+
+fn serve_statics() -> ServeDir {
+    let serve_dir = env::var("STATIC_DIR").unwrap_or("./assets".to_string());
+    ServeDir::new(serve_dir)
 }
