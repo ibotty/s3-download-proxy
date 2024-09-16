@@ -74,6 +74,15 @@ async fn main() -> BootstrapResult<()> {
             .context("Cannot construct governor layer config")?,
     );
 
+    let templates_path = env::var("TEMPLATES_PATH").unwrap_or("./templates".to_string());
+    let mut jinja_env = minijinja::Environment::new();
+    jinja_env.set_loader(minijinja::path_loader(templates_path));
+    jinja_env.set_undefined_behavior(minijinja::UndefinedBehavior::Strict);
+    let jinja_state = Arc::new(jinja_env);
+
+    let error_handler =
+        axum::middleware::from_fn_with_state(jinja_state, apperror::error_middleware);
+
     let app = axum::Router::new()
         .layer(GovernorLayer {
             config: governor_config,
@@ -81,8 +90,10 @@ async fn main() -> BootstrapResult<()> {
         .route("/", axum::routing::get(redirect_to_homepage))
         .route("/robots.txt", axum::routing::get(robots_txt))
         .route("/:id/:path", axum::routing::get(get_handler))
+        .layer(error_handler)
         .with_state(server_state)
         .fallback(get_service(serve_statics()));
+
     let listener = TcpListener::bind(bind_addr).await?;
     let axum_fut = axum::serve(
         listener,
@@ -161,6 +172,7 @@ async fn s3_config(s3_config: &aws_sdk_s3::Config, info: &DownloadInfo) -> aws_s
 
 #[axum::debug_handler]
 async fn redirect_to_homepage(state: axum::extract::State<Arc<ServerState>>) -> Redirect {
+    log::debug!("redirecting"; "url" => &state.redirect_homepage);
     Redirect::permanent(&state.redirect_homepage)
 }
 
@@ -180,7 +192,9 @@ async fn get_handler(
     let s3_client = aws_sdk_s3::Client::from_conf(s3_config);
 
     log::debug!("checking for file {:?}", info);
-    let _ = s3::stat_file(&s3_client, &info.bucket_key, &info.bucket_key).await?;
+    let _ = s3::stat_file(&s3_client, &info.bucket_key, &info.bucket_key)
+        .await
+        .context("cannot s3 stat file")?;
 
     log::debug!("presigning GET for {:?}", info);
     let req = s3::presign_get(

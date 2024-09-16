@@ -1,5 +1,6 @@
 use crate::AppError;
 
+use anyhow::Context;
 use sqlx::{
     types::{JsonValue, Uuid},
     FromRow, PgPool,
@@ -25,7 +26,7 @@ pub(crate) async fn get_download_info(
     )
     .bind(secret)
     .fetch_optional(pool)
-    .await?;
+    .await.context("Cannot fetch download_info")?;
     result.ok_or(AppError::Unauthorized)
 }
 
@@ -35,6 +36,13 @@ pub(crate) async fn log_access(
     access_data: impl IntoIterator<Item = (String, String)>,
 ) -> Result<(), AppError> {
     let access_data: JsonValue = JsonValue::from_iter(access_data);
-    let _ = sqlx::query!(r#"INSERT INTO download_proxy_access_log (uuid_download_proxy_files, access_data) VALUES ($1, $2)"#, download_id, access_data).execute(pool).await?;
+    let _ = sqlx::query!(
+        r#"INSERT INTO download_proxy_access_log (uuid_download_proxy_files, access_data) VALUES ($1, $2)"#,
+        download_id,
+        access_data
+    )
+    .execute(pool)
+    .await
+    .context("cannot log access to DB")?;
     Ok(())
 }

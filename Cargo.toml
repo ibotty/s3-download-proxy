@@ -11,6 +11,7 @@ aws-config = { version = "1.1.5", features = ["behavior-version-latest"] }
 aws-sdk-s3 = "1.15.0"
 axum = { version = "0.7.4", features = ["macros"] }
 foundations = "3.2.1"
+minijinja = { version = "2.2.0", features = ["loader"] }
 sqlx = { version = "0.8.1", features = ["postgres", "tls-rustls", "uuid", "runtime-tokio"] }
 tokio = { version = "1", features = ["rt-multi-thread", "signal"] }
 tower-http = { version = "0.5.2", features = ["fs"] }
