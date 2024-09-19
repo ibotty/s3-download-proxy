@@ -23,7 +23,7 @@ impl IntoResponse for AppError {
 
         match self {
             Self::AnyError(e) => {
-                log::error!("{}", e);
+                log::error!("{:?}", e);
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     self_arc,
