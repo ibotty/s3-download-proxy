@@ -4,7 +4,7 @@ use axum::{
     extract::{self, OriginalUri},
     http::StatusCode,
     middleware,
-    response::{IntoResponse, Response},
+    response::{Html, IntoResponse, Response},
     Extension,
 };
 use foundations::telemetry::log;
@@ -108,7 +108,7 @@ fn handle_error(
     if let Ok(tmpl) = state.get_template(template) {
         let context = minijinja::context!(status_code => status.as_u16(), uri => original_uri);
 
-        Ok((status, tmpl.render(context)?).into_response())
+        Ok((status, Html(tmpl.render(context)?)).into_response())
     } else {
         log::warn!("Cannot render template"; "template" => template);
         Ok(<AppError as Clone>::clone(failure).into_response())
