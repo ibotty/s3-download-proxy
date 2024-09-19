@@ -192,7 +192,7 @@ async fn get_handler(
     let s3_client = aws_sdk_s3::Client::from_conf(s3_config);
 
     log::debug!("checking for file {:?}", info);
-    let _ = s3::stat_file(&s3_client, &info.bucket_key, &info.bucket_key)
+    let _ = s3::stat_file(&s3_client, &info.s3_bucket, &info.bucket_key)
         .await
         .context("cannot s3 stat file")?;
 
