@@ -16,7 +16,6 @@ use self::state::*;
 
 use anyhow::Context;
 use axum::extract::ConnectInfo;
-use axum::routing::get_service;
 use axum::{extract::Path, response::Redirect};
 use db::DownloadInfo;
 use foundations::{
@@ -90,9 +89,9 @@ async fn main() -> BootstrapResult<()> {
         .route("/", axum::routing::get(redirect_to_homepage))
         .route("/robots.txt", axum::routing::get(robots_txt))
         .route("/:id/:path", axum::routing::get(get_handler))
+        .nest_service("/assets", serve_statics())
         .layer(error_handler)
-        .with_state(server_state)
-        .fallback(get_service(serve_statics()));
+        .with_state(server_state);
 
     let listener = TcpListener::bind(bind_addr).await?;
     let axum_fut = axum::serve(
