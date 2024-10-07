@@ -25,13 +25,27 @@ pub(crate) async fn get_download_info(
     secret: &str,
 ) -> Result<DownloadInfo, AppError> {
     info!("checking if valid download: {} {}", host, secret);
-    let result = sqlx::query_as(
-        r#"SELECT id, s3_bucket, bucket_key, download_filename, aws_endpoint_url, aws_region, aws_s3_force_path_style FROM download_proxy_file_info( $1, $2 );"#,
+    //let result = sqlx::query!(
+    //    r#"SELECT id, s3_bucket, bucket_key, download_filename, aws_endpoint_url, aws_region, aws_s3_force_path_style FROM download_proxy_file_info( $1, $2 );"#,
+    //    host,
+    //    secret
+    //)
+    let result = sqlx::query_as!(
+        DownloadInfo,
+        r#"SELECT id AS "uuid!",
+                  s3_bucket AS "s3_bucket!",
+                  bucket_key AS "bucket_key!",
+                  download_filename AS "download_filename!",
+                  aws_endpoint_url,
+                  aws_region,
+                  aws_s3_force_path_style
+            FROM download_proxy_file_info( $1, $2 );"#,
+        host,
+        secret
     )
-    .bind(host)
-    .bind(secret)
     .fetch_optional(pool)
-    .await.context("Cannot fetch download_info")?;
+    .await
+    .context("Cannot fetch download_info")?;
     result.ok_or(AppError::Unauthorized)
 }
 

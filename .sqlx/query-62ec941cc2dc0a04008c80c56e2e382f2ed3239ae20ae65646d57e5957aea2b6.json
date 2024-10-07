@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id AS \"uuid!\",\n                  s3_bucket AS \"s3_bucket!\",\n                  bucket_key AS \"bucket_key!\",\n                  download_filename AS \"download_filename!\",\n                  aws_endpoint_url,\n                  aws_region,\n                  aws_s3_force_path_style\n            FROM download_proxy_file_info( $1, $2 );",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "uuid!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "s3_bucket!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "bucket_key!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "download_filename!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "aws_endpoint_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "aws_region",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "aws_s3_force_path_style",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Bpchar"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "62ec941cc2dc0a04008c80c56e2e382f2ed3239ae20ae65646d57e5957aea2b6"
+}
