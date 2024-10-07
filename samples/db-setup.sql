@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS download_proxy_files(
     secret CHARACTER(64) NOT NULL UNIQUE DEFAULT REPLACE('' || gen_random_uuid() || gen_random_uuid(), '-', '' ),
     s3_bucket TEXT NOT NULL,
     bucket_key TEXT NOT NULL,
+    download_filename TEXT NOT NULL,
     aws_endpoint_url TEXT,
     aws_region TEXT,
     aws_s3_force_path_style BOOL,
@@ -11,24 +12,26 @@ CREATE TABLE IF NOT EXISTS download_proxy_files(
 
 CREATE OR REPLACE FUNCTION create_download_proxy_link(s3_bucket TEXT, bucket_key TEXT, preferred_name TEXT) RETURNS TEXT
 AS $$
-    INSERT INTO download_proxy_files(s3_bucket, bucket_key)
-    VALUES ($1, $2)
+    INSERT INTO download_proxy_files(s3_bucket, bucket_key, download_filename)
+    VALUES ($1, $2, $3)
     RETURNING 'https://downloads.example.com/' || secret || '/' || $2 AS url
 $$ LANGUAGE SQL
 STRICT;
 
-CREATE OR REPLACE FUNCTION download_proxy_file_info(secret CHARACTER(64))
+CREATE OR REPLACE FUNCTION download_proxy_file_info(_domain TEXT, _secret CHARACTER(64))
 RETURNS TABLE(
     id UUID,
     s3_bucket TEXT,
     bucket_key TEXT,
+    download_filename TEXT,
     aws_endpoint_url TEXT,
     aws_region TEXT,
     aws_s3_force_path_style BOOL
 ) AS $$
-    SELECT uuid_download_proxy_files AS "id", s3_bucket, bucket_key, aws_endpoint_url, aws_region, aws_s3_force_path_style
+    SELECT uuid_download_proxy_files AS "id", s3_bucket, bucket_key, download_filename, aws_endpoint_url, aws_region, aws_s3_force_path_style
     FROM download_proxy_files
-    WHERE secret = $1
+    WHERE secret = _secret
+      AND 'downloads.example.com' = _domain
       AND COALESCE(valid_until > CURRENT_TIMESTAMP, TRUE)
 $$ LANGUAGE SQL
 SET search_path to public
