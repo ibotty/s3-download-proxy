@@ -16,6 +16,7 @@ use self::state::*;
 
 use anyhow::Context;
 use axum::extract::ConnectInfo;
+use axum::extract::Host;
 use axum::{extract::Path, response::Redirect};
 use db::DownloadInfo;
 use foundations::{
@@ -183,9 +184,10 @@ async fn robots_txt() -> &'static str {
 async fn get_handler(
     state: axum::extract::State<Arc<ServerState>>,
     ConnectInfo(client_addr): ConnectInfo<SocketAddr>,
+    Host(host): Host,
     Path((secret, preferred_name)): Path<(String, String)>,
 ) -> Result<Redirect, AppError> {
-    let info = db::get_download_info(&state.pg_pool, &secret).await?;
+    let info = db::get_download_info(&state.pg_pool, &host, &secret).await?;
 
     let s3_config = s3_config(&state.s3_config, &info).await;
     let s3_client = aws_sdk_s3::Client::from_conf(s3_config);

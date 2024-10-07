@@ -1,6 +1,7 @@
 use crate::AppError;
 
 use anyhow::Context;
+use foundations::telemetry::log::info;
 use sqlx::{
     types::{JsonValue, Uuid},
     FromRow, PgPool,
@@ -19,11 +20,14 @@ pub(crate) struct DownloadInfo {
 
 pub(crate) async fn get_download_info(
     pool: &PgPool,
+    host: &str,
     secret: &str,
 ) -> Result<DownloadInfo, AppError> {
+    info!("checking if valid download: {} {}", host, secret);
     let result = sqlx::query_as(
-        r#"SELECT id, s3_bucket, bucket_key, aws_endpoint_url, aws_region, aws_s3_force_path_style FROM download_proxy_file_info( $1 );"#,
+        r#"SELECT id, s3_bucket, bucket_key, aws_endpoint_url, aws_region, aws_s3_force_path_style FROM download_proxy_file_info( $1, $2 );"#,
     )
+    .bind(host)
     .bind(secret)
     .fetch_optional(pool)
     .await.context("Cannot fetch download_info")?;
