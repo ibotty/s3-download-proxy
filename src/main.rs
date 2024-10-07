@@ -19,6 +19,7 @@ use axum::extract::ConnectInfo;
 use axum::extract::Host;
 use axum::{extract::Path, response::Redirect};
 use db::DownloadInfo;
+use foundations::telemetry::log::info;
 use foundations::{
     cli::{Arg, ArgAction, Cli},
     telemetry::{self, log, settings::TelemetrySettings},
@@ -187,6 +188,11 @@ async fn get_handler(
     Host(host): Host,
     Path((secret, preferred_name)): Path<(String, String)>,
 ) -> Result<Redirect, AppError> {
+    info!(
+        "requesting {} with preferred name {}",
+        secret, preferred_name
+    );
+
     let info = db::get_download_info(&state.pg_pool, &host, &secret).await?;
 
     let s3_config = s3_config(&state.s3_config, &info).await;
@@ -203,7 +209,7 @@ async fn get_handler(
         &info.s3_bucket,
         &info.bucket_key,
         state.presigned_ttl,
-        preferred_name,
+        &info.download_filename,
     )
     .await?;
 

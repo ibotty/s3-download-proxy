@@ -13,6 +13,7 @@ pub(crate) struct DownloadInfo {
     pub uuid: Uuid,
     pub s3_bucket: String,
     pub bucket_key: String,
+    pub download_filename: String,
     pub aws_endpoint_url: Option<String>,
     pub aws_region: Option<String>,
     pub aws_s3_force_path_style: Option<bool>,
@@ -25,7 +26,7 @@ pub(crate) async fn get_download_info(
 ) -> Result<DownloadInfo, AppError> {
     info!("checking if valid download: {} {}", host, secret);
     let result = sqlx::query_as(
-        r#"SELECT id, s3_bucket, bucket_key, aws_endpoint_url, aws_region, aws_s3_force_path_style FROM download_proxy_file_info( $1, $2 );"#,
+        r#"SELECT id, s3_bucket, bucket_key, download_filename, aws_endpoint_url, aws_region, aws_s3_force_path_style FROM download_proxy_file_info( $1, $2 );"#,
     )
     .bind(host)
     .bind(secret)
