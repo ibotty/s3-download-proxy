@@ -90,7 +90,9 @@ async fn main() -> BootstrapResult<()> {
         })
         .route("/", axum::routing::get(redirect_to_homepage))
         .route("/robots.txt", axum::routing::get(robots_txt))
-        .route("/:id/:path", axum::routing::get(get_handler))
+        .route("/:id/:path", axum::routing::get(get_handler_with_path))
+        .route("/:id/", axum::routing::get(get_handler))
+        .route("/:id", axum::routing::get(get_handler))
         .nest_service("/assets", serve_statics())
         .layer(error_handler)
         .with_state(server_state);
@@ -180,17 +182,37 @@ async fn redirect_to_homepage(state: axum::extract::State<Arc<ServerState>>) -> 
 async fn robots_txt() -> &'static str {
     " User-agent: * \n Disallow: / \n"
 }
-
 #[axum::debug_handler]
 async fn get_handler(
     state: axum::extract::State<Arc<ServerState>>,
     ConnectInfo(client_addr): ConnectInfo<SocketAddr>,
     Host(host): Host,
+    Path(secret): Path<String>,
+) -> Result<Redirect, AppError> {
+    get_handler_impl(state, client_addr, &host, &secret, None).await
+}
+
+#[axum::debug_handler]
+async fn get_handler_with_path(
+    state: axum::extract::State<Arc<ServerState>>,
+    ConnectInfo(client_addr): ConnectInfo<SocketAddr>,
+    Host(host): Host,
     Path((secret, preferred_name)): Path<(String, String)>,
 ) -> Result<Redirect, AppError> {
+    get_handler_impl(state, client_addr, &host, &secret, Some(preferred_name)).await
+}
+
+async fn get_handler_impl(
+    state: axum::extract::State<Arc<ServerState>>,
+    client_addr: SocketAddr,
+    host: &str,
+    secret: &str,
+    preferred_name: Option<String>,
+) -> Result<Redirect, AppError> {
     info!(
-        "requesting {} with preferred name {}",
-        secret, preferred_name
+        "requesting";
+        "secret" =>  secret,
+        "preferred_name" =>  preferred_name,
     );
 
     let info = db::get_download_info(&state.pg_pool, &host, &secret).await?;
