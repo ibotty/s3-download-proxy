@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{self, OriginalUri},
+    extract::{self, Host, OriginalUri},
     http::StatusCode,
     middleware,
     response::{Html, IntoResponse, Response},
@@ -73,12 +73,18 @@ pub async fn error_middleware(
         .get::<OriginalUri>()
         .map(|p| p.0.path().to_owned());
 
-    log::debug!("error middleware"; "original_uri" => format!("{:?}", original_uri));
+    let host = req.extensions().get::<Host>().map(|h| h.0.to_owned());
+
+    log::debug!(
+        "error middleware";
+        "original_uri" => format!("{:?}", original_uri),
+        "host" => format!("{:?}", host),
+    );
 
     let resp = next.run(req).await;
 
     if let Some(failure) = resp.extensions().get::<Arc<AppError>>() {
-        match handle_error(failure, state, original_uri, &resp) {
+        match handle_error(failure, state, host, original_uri, &resp) {
             Ok(resp) => resp,
             Err(err) => {
                 log::warn!("error handler failed"; "err"=> format!("{:?}", err));
@@ -86,7 +92,6 @@ pub async fn error_middleware(
             }
         }
     } else {
-        log::debug!("no failure");
         resp
     }
 }
@@ -95,6 +100,7 @@ fn handle_error(
     failure: &Arc<AppError>,
     state: Arc<minijinja::Environment>,
     original_uri: Option<String>,
+    host: Option<String>,
     resp: &axum::http::Response<axum::body::Body>,
 ) -> Result<axum::http::Response<axum::body::Body>, AppError> {
     let template = match failure.as_ref() {
@@ -106,7 +112,11 @@ fn handle_error(
     let status = resp.status();
 
     if let Ok(tmpl) = state.get_template(template) {
-        let context = minijinja::context!(status_code => status.as_u16(), uri => original_uri);
+        let context = minijinja::context!(
+            status_code => status.as_u16(),
+            host => host,
+            uri => original_uri,
+        );
 
         Ok((status, Html(tmpl.render(context)?)).into_response())
     } else {
