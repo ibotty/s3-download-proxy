@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{self, Host, OriginalUri},
-    http::StatusCode,
+    extract::{self, OriginalUri},
+    http::{StatusCode, Uri},
     middleware,
     response::{Html, IntoResponse, Response},
     Extension,
@@ -64,24 +64,20 @@ impl From<anyhow::Error> for AppError {
 }
 
 pub async fn error_middleware(
-    Host(host): Host,
-    OriginalUri(uri_path): OriginalUri,
+    OriginalUri(uri): OriginalUri,
     extract::State(state): extract::State<Arc<minijinja::Environment<'_>>>,
     req: extract::Request,
     next: middleware::Next,
 ) -> Response {
-    let uri_path = uri_path.path();
-
     log::debug!(
         "error middleware";
-        "uri_path" => uri_path,
-        "host" => host.clone(),
+        "uri" => uri.to_string(),
     );
 
     let resp = next.run(req).await;
 
     if let Some(failure) = resp.extensions().get::<Arc<AppError>>() {
-        match handle_error(failure, state, &host, uri_path, &resp) {
+        match handle_error(failure, state, &uri, &resp) {
             Ok(resp) => resp,
             Err(err) => {
                 log::warn!("error handler failed"; "err"=> format!("{:?}", err));
@@ -96,8 +92,7 @@ pub async fn error_middleware(
 fn handle_error(
     failure: &Arc<AppError>,
     state: Arc<minijinja::Environment>,
-    host: &str,
-    uri_path: &str,
+    uri: &Uri,
     resp: &axum::http::Response<axum::body::Body>,
 ) -> Result<axum::http::Response<axum::body::Body>, AppError> {
     let template = match failure.as_ref() {
@@ -109,13 +104,16 @@ fn handle_error(
     let status = resp.status();
 
     if let Ok(tmpl) = state.get_template(template) {
-        let uri = format!("https://{}/{}", host, uri_path);
+        let scheme = uri.scheme_str();
+        let host = uri.host();
+        let uri_path = uri.path();
 
         let context = minijinja::context!(
             status_code => status.as_u16(),
+            uri => uri.to_string(),
+            scheme,
             host,
             uri_path,
-            uri,
         );
 
         Ok((status, Html(tmpl.render(context)?)).into_response())
