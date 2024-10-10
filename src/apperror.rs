@@ -109,7 +109,7 @@ fn handle_error(
     let status = resp.status();
 
     if let Ok(tmpl) = state.get_template(template) {
-        let uri = format!("https://{}/{}", host, uri_path);
+        let uri = format!("https://{}{}", host, uri_path);
 
         let context = minijinja::context!(
             status_code => status.as_u16(),
