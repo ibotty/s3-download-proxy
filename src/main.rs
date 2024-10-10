@@ -256,6 +256,6 @@ fn sandbox_syscalls() -> BootstrapResult<()> {
 }
 
 fn serve_statics() -> ServeDir {
-    let serve_dir = env::var("STATIC_DIR").unwrap_or("./assets".to_string());
+    let serve_dir = env::var("ASSETS_PATH").unwrap_or("./assets".to_string());
     ServeDir::new(serve_dir)
 }
