@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9-minimal
+FROM registry.access.redhat.com/ubi10-minimal
 ARG BINARY=target/release/s3-download-proxy
 
 LABEL maintainer="Tobias Florek <tob@butter.sh>"
